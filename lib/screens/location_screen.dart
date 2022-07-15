@@ -1,19 +1,75 @@
+import 'package:clima/screens/city_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:clima/utilities/constants.dart';
+import 'package:clima/services/weather.dart';
+
 
 class LocationScreen extends StatefulWidget {
+
+  //Property
+  final locationWeather;
+
+  //Constructor
+  LocationScreen({this.locationWeather});
+
+  //Methods
   @override
   _LocationScreenState createState() => _LocationScreenState();
 }
 
 class _LocationScreenState extends State<LocationScreen> {
+
+  var cuacaBerubah;
+
+  WeatherModel cuaca = WeatherModel();
+
+  double temperatur;
+  int cuacaId;
+  String namaDaerah;
+
+  @override
+  void initState() {
+    super.initState();
+
+    updateUI(widget.locationWeather);
+  }
+
+  void updateUI(dynamic weatherData) {
+    setState((){
+      if(widget.locationWeather == null){
+        temperatur = 0;
+        cuacaId = 0;
+        namaDaerah = "";
+        return;
+      }
+    temperatur = widget.locationWeather["main"]['temp'];
+    cuacaId = widget.locationWeather['weather'][0]['id'];
+    namaDaerah = widget.locationWeather['name'];
+    });
+  }
+
+  void updateUI2(dynamic weatherData) {
+    setState((){
+      if(cuacaBerubah == null){
+        temperatur = 999;
+        cuacaId = 0;
+        namaDaerah = "-";
+        return;
+      }
+      temperatur = cuacaBerubah["main"]['temp'];
+      cuacaId = cuacaBerubah['weather'][0]['id'];
+      namaDaerah = cuacaBerubah['name'];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('images/location_background.jpg'),
+            image: NetworkImage(cuaca.getGambar(cuacaId)),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
                 Colors.white.withOpacity(0.8), BlendMode.dstATop),
@@ -28,18 +84,31 @@ class _LocationScreenState extends State<LocationScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  FlatButton(
-                    onPressed: () {},
+                  TextButton(
+                    onPressed: () async {
+                      cuacaBerubah = await cuaca.getLocationWeather();
+                      updateUI2(cuacaBerubah);
+                    },
                     child: Icon(
                       Icons.near_me,
                       size: 50.0,
+                      color: Colors.white,
                     ),
                   ),
-                  FlatButton(
-                    onPressed: () {},
+                  TextButton(
+                    onPressed: () async {
+                        var backwardData = await Navigator.push(context, MaterialPageRoute(builder: (context){
+                          return CityScreen();
+                        }));
+                        if(backwardData != null){
+                          cuacaBerubah = await cuaca.getCityWeather(backwardData);
+                          updateUI2(cuacaBerubah);
+                        }
+                    },
                     child: Icon(
                       Icons.location_city,
                       size: 50.0,
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -49,11 +118,10 @@ class _LocationScreenState extends State<LocationScreen> {
                 child: Row(
                   children: <Widget>[
                     Text(
-                      '32°',
+                      '${temperatur.toStringAsFixed(0)}°',
                       style: kTempTextStyle,
                     ),
-                    Text(
-                      '☀️',
+                    Text(cuaca.getWeatherIcon(cuacaId),
                       style: kConditionTextStyle,
                     ),
                   ],
@@ -62,7 +130,7 @@ class _LocationScreenState extends State<LocationScreen> {
               Padding(
                 padding: EdgeInsets.only(right: 15.0),
                 child: Text(
-                  "It's 🍦 time in San Francisco!",
+                    ("${cuaca.getMessage(temperatur)}" + "\n di " + namaDaerah),
                   textAlign: TextAlign.right,
                   style: kMessageTextStyle,
                 ),
